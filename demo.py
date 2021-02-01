@@ -22,11 +22,13 @@ def format_image(image):
   if not len(faces) > 0:
     return None, None
   max_are_face = faces[0]
+  #print(len(faces))
   for face in faces:
     if face[2] * face[3] > max_are_face[2] * max_are_face[3]:
       max_are_face = face
   # face to image
   face_coor =  max_are_face
+  #print("largest = {0} {1} {2} {3} ".format(face_coor[0], face_coor[1], face_coor[2],face_coor[3]))
   image = image[face_coor[1]:(face_coor[1] + face_coor[2]), face_coor[0]:(face_coor[0] + face_coor[3])]
   # Resize image to network size
   try:
@@ -35,6 +37,34 @@ def format_image(image):
     print("[+} Problem during resize")
     return None, None
   return  image, face_coor
+  
+  
+def format_image_multi(image):
+  if len(image.shape) > 2 and image.shape[2] == 3:
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+  faces = cascade_classifier.detectMultiScale(
+    image,
+    scaleFactor = 1.3,
+    minNeighbors = 5
+  )
+  # None is no face found in image
+  if not len(faces) > 0:
+    return None, None
+  max_are_face = faces[0]
+  #print(len(faces))
+  images = []
+  face_coors = []
+  for face in faces:
+    face_coors.append(face)
+    #print("{0} {1} {2} {3} ".format(face[0], face[1], face[2],face[3]))
+    new_f = image[face[1]:(face[1] + face[2]), face[0]:(face[0] + face[3])]
+    try:
+        new_f = cv2.resize(new_f, (48, 48), interpolation=cv2.INTER_CUBIC)
+        images.append(new_f)
+    except Exception as e:
+        print("[!} Problem during resize: {0}".format(e))
+        return None, None
+  return images, face_coors,
 
 def face_dect(image):
   """
@@ -89,7 +119,7 @@ def demo(modelPath, showBox=False):
   feelings_faces = []
   for index, emotion in enumerate(EMOTIONS):
     feelings_faces.append(cv2.imread('./data/emojis/' + emotion + '.png', -1))
-  video_captor = cv2.VideoCapture(0)
+  video_captor = cv2.VideoCapture(1)
 
   emoji_face = []
   result = None
@@ -97,13 +127,17 @@ def demo(modelPath, showBox=False):
   while True:
     ret, frame = video_captor.read()
     detected_face, face_coor = format_image(frame)
+    detected_faces, face_coors = format_image_multi(frame)
     if showBox:
+      if face_coors is not None:
+        for (x, y, w, h) in face_coors:
+           cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
       if face_coor is not None:
         [x,y,w,h] = face_coor
         cv2.rectangle(frame, (x,y), (x+w,y+h), (255,0,0), 2)
-
-    if cv2.waitKey(1) & 0xFF == ord(' '):
-
+    #if cv2.waitKey(1) & 0xFF == ord(' '): #manual press space to detect
+    if face_coor is not None:
+      #print("capture!")
       if detected_face is not None:
         cv2.imwrite('a.jpg', detected_face)
         tensor = image_to_tensor(detected_face)
@@ -118,6 +152,22 @@ def demo(modelPath, showBox=False):
 
       for c in range(0, 3):
         frame[200:320, 10:130, c] = emoji_face[:, :, c] * (emoji_face[:, :, 3] / 255.0) + frame[200:320, 10:130, c] * (1.0 - emoji_face[:, :, 3] / 255.0)
+
+    #extneding above to multi face probs:
+    if detected_faces is not None:    
+        for i, face in enumerate(detected_faces):
+            if face is not None:
+                cv2.imwrite('a.jpg', face)
+                tensor = image_to_tensor(face)
+                result = sess.run(probs, feed_dict={face_x: tensor})
+                if result[0] is not None:
+                #for index, emotion in enumerate(EMOTIONS):
+                #normalize:    
+                    total = 0.0;
+                    for r in result[0]:
+                        r = r / sum(result[0])
+                    print ("{0}: {1}".format(i, result[0]))
+                
     cv2.imshow('face', frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
       break
