@@ -3,12 +3,21 @@ import cv2
 import numpy as np
 import sys
 import tensorflow as tf
+from pythonosc import udp_client
+from pythonosc import osc_message_builder
 
 from model import predict, image_to_tensor, deepnn
 
 CASC_PATH = './data/haarcascade_files/haarcascade_frontalface_default.xml'
 cascade_classifier = cv2.CascadeClassifier(CASC_PATH)
 EMOTIONS = ['angry', 'disgusted', 'fearful', 'happy', 'sad', 'surprised', 'neutral']
+
+############################
+#Configuration settings#####
+############################
+OSC_IP = "127.0.0.1"
+OSC_PORT = 7000
+VID_DEVICE_IDX = 1
 
 def format_image(image):
   if len(image.shape) > 2 and image.shape[2] == 3:
@@ -119,10 +128,13 @@ def demo(modelPath, showBox=False):
   feelings_faces = []
   for index, emotion in enumerate(EMOTIONS):
     feelings_faces.append(cv2.imread('./data/emojis/' + emotion + '.png', -1))
-  video_captor = cv2.VideoCapture(1)
+  video_captor = cv2.VideoCapture(VID_DEVICE_IDX)
 
   emoji_face = []
   result = None
+  
+  #OSC sender
+  osc_client = udp_client.SimpleUDPClient(OSC_IP, OSC_PORT)
 
   while True:
     ret, frame = video_captor.read()
@@ -153,7 +165,7 @@ def demo(modelPath, showBox=False):
       for c in range(0, 3):
         frame[200:320, 10:130, c] = emoji_face[:, :, c] * (emoji_face[:, :, 3] / 255.0) + frame[200:320, 10:130, c] * (1.0 - emoji_face[:, :, 3] / 255.0)
 
-    #extneding above to multi face probs:
+    #extending above to multi face probs:
     if detected_faces is not None:    
         for i, face in enumerate(detected_faces):
             if face is not None:
@@ -162,12 +174,19 @@ def demo(modelPath, showBox=False):
                 result = sess.run(probs, feed_dict={face_x: tensor})
                 if result[0] is not None:
                 #for index, emotion in enumerate(EMOTIONS):
-                #normalize:    
+                #normalize:
+                    msg = osc_message_builder.OscMessageBuilder(address="/face")
+                    
+                    msg.add_arg(i)
                     total = 0.0;
                     for r in result[0]:
                         r = r / sum(result[0])
+                        msg.add_arg(r)
                     print ("{0}: {1}".format(i, result[0]))
-                
+                    
+                    osc_client.send(msg.build())
+                    #osc_client.send_message("/test", 1)
+               
     cv2.imshow('face', frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
       break
