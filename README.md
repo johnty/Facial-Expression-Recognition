@@ -1,3 +1,27 @@
+#### Setup instructions for doing screen capture via OBS virtual camera from desktop video grid
+
+NOTE: in Windows the built in OBS virtual camera doesn't work, and [this plugin](https://github.com/CatxFish/obs-virtual-cam) is needed
+
+to run:
+
+- set up Python 3.7 environment (ideally venv, but could be site wide install)
+- update pip `python -m pip install –upgrade pip`
+- run `python setup.py install` to install dependencies
+- run `pip install opencv-python` to install opencv separately (doesn't work with setup.py above)
+- run `python main.py`
+
+### Configuration:
+
+- `demo.py` has configuration settings OSC IP address and port, and video device index (set to OBS virtual cam)
+```
+OSC_IP = "127.0.0.1"
+OSC_PORT = 7000
+VID_DEVICE_IDX = 1
+```
+original documentation follows
+
+---
+
 ![amazing](./amazingkelly.jpeg)
 
 Opensource deep learning framework [TensorFlow](https://www.tensorflow.org) is used in **Facial Expression Recognition(FER)**. 
