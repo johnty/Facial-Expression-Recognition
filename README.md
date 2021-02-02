@@ -1,16 +1,21 @@
-#### Setup instructions for doing screen capture via OBS virtual camera from desktop video grid
+## Setup instructions for doing screen capture facial expression recognition via OBS virtual camera from desktop video grid
+
+This is a modified version of the Facial-Expression-Recognition demo, with the following added features:
+
+- detect multiple faces and run the same emotional predictions each face
+- emit the probabilities as OSC message to an endpoint
 
 NOTE: in Windows the built in OBS virtual camera doesn't work, and [this plugin](https://github.com/CatxFish/obs-virtual-cam) is needed
 
-to run:
+#### Setup:
 
-- set up Python 3.7 environment (ideally venv, but could be site wide install)
+- Install Python 3.7 environment (ideally venv, but could be site wide install)
 - update pip `python -m pip install –upgrade pip`
 - run `python setup.py install` to install dependencies
-- run `pip install opencv-python` to install opencv separately (doesn't work with setup.py above)
+- run `pip install opencv-python` to install opencv separately (doesn't install properly with setup.py above)
 - run `python main.py`
 
-### Configuration:
+#### Configuration:
 
 - `demo.py` has configuration settings OSC IP address and port, and video device index (set to OBS virtual cam)
 ```
